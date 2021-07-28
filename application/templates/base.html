@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <style>
+
+        .createRoom-form
+        {
+           margin-top: 5%;
+           margin-left: 33%;
+           margin-right: 33%;
+        }
+        .main-btns
+        {
+            text-align: center;
+            margin-top: 15%;
+        }
+
+        .create-btn
+        {
+            margin: 2%;
+        }
+
+        .join-btn
+        {
+            margin: 2%;
+        }
+
+
+    </style>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+
+    <title>{%block title%} {%endblock%}</title>
+</head>
+<body>
+    {%block content%}
+
+    {%endblock%}
+    
+</body>
+<script>
+    function handle_pass(){
+
+      if ($('#hasPassword').is(':checked')) {
+
+          var input = '<input type="password" class="form-control" id="password" name="password"  placeholder="Enter password"'
+          var form_group = `<div class='pass-group form-group mt-3'>` + input + "</div>";
+          $('.my-join-group').append(form_group)
+          $("#passHelp").text('Switch this off if the room has no password.')
+      } else {
+        console.log($("#passHelp"))
+          $(".pass-group").remove()
+          $("#passHelp").text('Switch this on if the room has a password.')
+      }
+    }
+    function handle_protect(){
+
+        if ($('#isProtected').is(':checked')) {
+
+            var input = '<input type="password" class="form-control" id="password" name="password"  placeholder="Enter password"'
+            var form_group = `<div class='protect-pass-group form-group mt-3'>` + input + "</div>";
+            $('.my-create-group').append(form_group)
+            $("#protectHelp").text('Switch this off if you want non protected room.')
+        } else {
+        console.log($("#passHelp"))
+            $(".protect-pass-group").remove()
+            $("#protectHelp").text('Switch this on if you want a protected room.')
+        }
+}
+
+</script>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</html>

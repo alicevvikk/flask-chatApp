@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{%block content%}
+
+<form class="createRoom-form" method="POST">
+  <div class="my-create-group">
+      <div class="form-group">
+        <label for="exampleInputEmail1">Name</label>
+        <input type="text" class="form-control" id="username" name="username" aria-describedby="emailHelp" placeholder="Enter email">
+        <small id="emailHelp" class="form-text text-muted">This will be your room's name.</small>
+      </div>
+  </div>
+  <div class="form-check form-switch">
+    <input onclick="handle_protect()" class="form-check-input" type="checkbox" id="isProtected" name="isProtected">
+    <small id="protectHelp" class="form-text text-muted">Switch this on if you want a protected room.</small>
+  </div>
+    <select class="custom-select my-1 mr-sm-2" id="max_users" name="max_users">
+      <option selected>Choose...</option>
+      {% for i in range(12)%}
+      <option value="{{i+1}}">{{i+1}}</option>
+
+      {%endfor%}
+    </select>
+    <div class="form-check form-switch">
+      <input class="form-check-input" type="checkbox" id="all_super" name="all_super">
+      <small id="emailHelp" class="form-text text-muted">Make all members of room super members ? </small>
+    </div>
+    <button href="{{ url_for('views.create_room') }}" type="submit" class="submit-btn btn btn-primary" >Submit</button>
+  </form>
+{%endblock%}

@@ -1,0 +1,16 @@
+{%extends 'base.html'%}
+
+{%block content%}
+
+
+    <div class="main-btns">
+        <div>
+            <a href="{{ url_for('views.create_room')}}" class="create-btn btn btn-primary btn-lg">Create a room</a>
+        </div>
+        <div>
+            <a href="{{ url_for('views.join_room')}}" class="join-btn btn btn-success ">Join a room</a>
+        </div>
+    </div>
+    {{data.room}}
+
+{%endblock%}

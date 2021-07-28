@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{%block content%}
+
+<form class="createRoom-form" method="POST">
+    <div class="my-join-group">
+        <div class="form-group">
+        <label for="exampleInputEmail1">Enter the link</label>
+        <input type="text" class="form-control" id="link" name="link" aria-describedby="emailHelp" placeholder="Enter link">
+        <small id="emailHelp" class="form-text text-muted">You can get this link from a super member of the room.</small>
+        </div>
+    </div>
+    <div class="form-check form-switch">
+        <input onclick="handle_pass()" class="form-check-input" type="checkbox" id="hasPassword" name="hasPassword">
+        <small id="passHelp" class="form-text text-muted">Switch this on if the room has a password.</small>
+      </div>
+    <button href="{{ url_for('views.join_room') }}" type="submit" class="submit-btn btn btn-primary mt-2" style="margin-left: 40%;" >Submit</button>
+  </form>
+
+{%endblock%}
