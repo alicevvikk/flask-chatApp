@@ -1,7 +1,7 @@
 {%extends 'base.html'%}
 
-{%block content%}
 
+{%block content%}
 <style>
     .room
     {
@@ -15,8 +15,9 @@
         width: 50%;
         
         border-style: solid;
-
     }
+
+
     .message{
         width: 100%;
         display: table;
@@ -34,89 +35,161 @@
 
 </style>
 <div class="room">
-<div class="about-room" >
-<div class="room-title mt-2">
-    <h3 style="margin-left: 5%;">Room:{{data.room.name}}</h3>
-    <hr>
-</div>
-
-<div class="members" style="float: right; margin-right: 15%; width: 25%;">
-    <h3>Members</h3>
-    <hr>
-    <table class="table table-striped">
-        <thead>
-          <tr>
-            <th scope="col">#</th>
-            <th scope="col">Member</th>
-            <th scope="col">Active</th>
-          </tr>
-        </thead>
-        <tbody>
-            {%for user in data.room.users%}
-          <tr>
-            <th scope="row">{{loop.index }}</th>
-            <td>@{{user.name}}</td>
-            <td>Yes</td>
-          </tr>
-          {%endfor%}
-        </tbody>
-      </table>
-</div>
-</div>
-
-<div class="messages">
-<div class="message">
-    <div class="message-owner" style=" width: 15%;">
-        <h6 class="text-muted">Ali Ziya CEVIK</h6>
+    <div class="about-room" >
+    <div class="room-title mt-2">
+        <h3 style="margin-left: 5%;">Room:{{data.room.name}}</h3>
+        <hr>
     </div>
-    <div class="message-body" style="width: 70%;">
-        <h3 id="message-text" style="margin-left:3%">a</h3>
+    <div class="members" style="float: right; margin-right: 15%; width: 25%;">
+        <h3>Members</h3>
+        <hr>
+        <table class="mems-table table table-striped">
+            <thead>
+              <tr>
+                <th scope="col">#</th>
+                <th scope="col">Member</th>
+                <th scope="col">Active</th>
+              </tr>
+            </thead>
+            <tbody>
+                {%for user in data.room.users%}
+                <tr id={{user.id}}>
+                  <th scope="row">{{loop.index}}</th>
+                  <td>@{{user.name}}</td>
+                  <td>Yes</td>
+                </tr>
+                {%endfor%}
+
+            </tbody>
+          </table>
     </div>
-    <div class="message-date" style="width: 15%;">
-        <p><small class="text-muted">14.04.2000</small></p>
+    <div class="messages">
+        {%for message in data.messages%}
+        <div id={{message.id}} class="message">
+        {%if g.user.id == message.owner_id %}
+        
+
+            <div class="message-date" style="width: 15%;">
+                <p><small class="text-muted" style="margin-left: 15%;">{{message.date}}</small></p>
+            </div>
+            <div class="message-body" style="width: 70%;">
+     
+                <h6 class="message-text " style="float: right;" >{{message.content}}</h6> 
+            </div>
+
+            <div class="message-owner" >
+                <h6 class="text-muted" style="float: right; margin-right: 15%; margin-top: 15%">{{message.owner.name}}</h6>
+            </div>
+
+        
+
+        {%else%}
+
+        <div class="message-owner" style="width: 15%;">
+            <h6 class="text-muted" style="float: left; margin-left: 15%; margin-top: 15%">{{message.owner.name}}</h6>
+        </div>
+
+        <div class="message-body" style="width: 70%;">
+ 
+            <h6 class="message-text " style="float: left;" >{{message.content}}</h6> 
+        </div>
+
+        <div class="message-date" style="width: 15%;">
+            <p><small class="text-muted">{{message.date}}</small></p>
+        </div>
+        {%endif%}
     </div>
-</div>
-</div>
-<div class="send-msg-form form-inline mt-2">
-<div class="mb-3">
-    <div class="message-div" style="width: 66%; float: left;">
-        <input type="text" class="form-control" id="new-message-text" placeholder="Enter Message">
+        {%if not loop.last%} <hr> {%endif%}
+        {%endfor%}
+       
+
     </div>
-    <div class="send-btn-div">
-        <button id="send-btn"  style="float: right;" type="submit" class="btn btn-primary mb-2">Send</button>
-        <a href="{{ url_for( 'views.leave_room' user_id= g.user.id, room_id= '{{room.id}}')}}" class="btn btn-danger me-2" style="float: right;">Leave the room</a>
+        <div class="send-msg-form form-inline mt-2">
+            <div class="mb-3">
+                <div class="message-div" style="width: 66%; float: left;">
+                    <input type="text" class="form-control" id="new-message-body" placeholder="Enter Message">
+                </div>
+                <div class="send-btn-div">
+                    <button id="send-btn"  style="float: right;" type="submit" class="btn btn-primary mb-2">Send</button>
+                    <a onclick="leaveRoom(event, '{{g.user.id}}', '{{data.room.id}}')" href="{{ url_for('views.leave_room', user_id=g.user.id, room_id=data.room.id )}}" class="btn btn-danger me-2" style="float: right;">Leave the room</a>
+                </div>
+            </div>
+            
+        </div>
+    
+ 
     </div>
-</div>
-
-</div>
-
-</div>
+    
 
 
-
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+    
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
 <script type="text/javascript" charset="utf-8">
-var socket = io.connect('http://127.0.0.1:5000');
-socket.on('connect', function() {
-    socket.emit('my event', {data: 'I\'m connected!'});
-    console.log('lala')
-});
+function getCookie(name) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+}
+    var socket = io.connect('http://127.0.0.1:5000');
+    socket.on('connect', function() {
 
-    $('#send-btn').on('click', function() {
-    var new_msg = $('#new-message-text').val()
-    console.log(new_msg)
+        fetch('/get_user')
+            .then(response => response.json())
+            .then(function(data){
+                    socket.emit('new connection', {data: data});   
+            
+                //$('.mems-table').append(`<tr id=${data.user.id}> <th scope='row'> ${data.user.id} </th><td>${data.user.name}</td><td>Yes</td> </tr>`)
+            }
+            );
 
-    data = {
-        new_msg,
-    }
+    });
 
-    socket.emit('new msg', data);
-    $('#new-message-text').val('')
+        socket.on('new connection', function(user){
+            console.log('new connection')
+            if (!$(`#${user.id}`).length)
+            $('.mems-table').append(`<tr id=${user.id}> <th scope='row'> ${user.id} </th><td>${user.name}</td><td>Yes</td> </tr>`)
 
-    })
+        });
+        socket.on('leave room', function(user){
+            
+            console.log(user.id, 'someone leaved the room')
 
+            $(`#${user.id}`).remove()
 
+        });
+
+        socket.on('new message', function(data) {
+            console.log('here')
+            fetch('/get_user')
+            .then(response => response.json())
+            .then(function(user){
+                
+                if (user.user.id == data.msg.owner_id) { 
+                    console.log('AYNI KISILER')
+                    var message_div = `<div id=${data.msg.id} class="message"> <div class="message-date" style="width: 15%;"> <p><small class="text-muted">${data.msg.date}</small></p> </div> <div class="message-body" style="width: 70%;"> <h6 class="message-text " style="float: right;" >${data.msg.content}</h6> </div> <div class="message-owner" > <h6 class="text-muted" style="float: right; margin-right: 15%; margin-top: 15%">${data.creator_name}</h6> </div> </div>`
+                    $('.messages').append(`${message_div}`)  
+                    
+                }
+                else {
+                    console.log('FARKLI KISILER')
+                var message_div = `<div id=${data.msg.id} class="message"> <div class="message-owner" > <h6 class="text-muted" style="float: left; margin-left: 15%; margin-top: 15%">${data.creator_name}</h6> </div> <div class="message-body" style="width: 70%;"> <h6 class="message-text " style="float: left;" >${data.msg.content}</h6> </div> <div class="message-date" style="width: 15%;"> <p><small class="text-muted">${data.msg.date}</small></p> </div> </div> </div>`
+                $('.messages').append(`${message_div}`) 
+                }
+            }
+            );
+        })
+
+        $('#send-btn').on('click', function(){
+            var newMsg = $('#new-message-body').val()
+            data = {
+                newMsg
+            }
+            socket.emit('new message', data)
+            $('#new-message-body').val('')
+        } )
 </script>
 
 {%endblock%}
+

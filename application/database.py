@@ -19,6 +19,15 @@ class User(db.Model):
     created_rooms = db.relationship('Room', cascade='all,delete', backref='creator', lazy=True)
     messages = db.relationship('Message', cascade='all,delete', backref='owner', lazy=True)
 
+    def serialize(self):
+        data = {
+            'id':self.id,
+            'name':self.name,
+            'created_rooms':[room.id for room in self.created_rooms],
+        }
+
+        return data
+
 class Room(db.Model):
     active = db.Column(db.Boolean, default=False)
     protected = db.Column(db.Boolean, default= False)
@@ -33,17 +42,35 @@ class Room(db.Model):
     link = db.Column(db.String(70))
     messages = db.relationship('Message', cascade='all,delete', backref='room', lazy=True)
 
+    def serialize(self):
+        data = {
+            'id':self.id,
+            'active':self.active,
+            'protected':self.protected,
+            'creator_id':self.creator_id,
+            'name':self.name,
+            'password':self.password,
+            'max_users':self.max_users,
+            'all_super':self.all_super,
+            'users':[user.serialize() for user in self.users],
+        }
+
+        return data
+
 
     def set_hash(self):
         self.password = generate_password_hash(self.password)
+        db.session.commit()
 
     def check_pass(self, password):
         return check_password_hash(password, self.password)
 
     def generate_link(self):
-        self.link = f'rooms-{self.creator_id}-{self.id}'
+        self.link = f'ratvj{self.creator_id}lmfao{self.id}'
         self.active = True
+        db.session.commit()
         return self.link
+
 
 
 class Message(db.Model):
@@ -52,3 +79,24 @@ class Message(db.Model):
     date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow())
     roomPid = db.Column(db.Integer, db.ForeignKey('room.id'))
     content = db.Column(db.String(125))
+
+    def serialize(self):
+        data = {
+            'id':self.id,
+            'owner_id':self.owner_id,
+            'date':self.serialize_date(),
+            'room_id':self.roomPid,
+            'content':self.content
+        }
+
+        return data
+    
+    def serialize_date(self):
+        year = self.date.year
+        month = self.date.month
+        day = self.date.day
+
+        hour = self.date.hour
+        minutes = self.date.minute
+
+        return f"{year}/{month}/{day} - {hour}.{minutes}"

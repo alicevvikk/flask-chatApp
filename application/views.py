@@ -1,11 +1,21 @@
 from flask import Flask, render_template, redirect, url_for, session, Blueprint, request, g
+from sqlalchemy import delete
+import json
+from werkzeug.wrappers import PlainRequest
 
-from application import db
-from application.database import User, Room, members
+from application import db, socketio
+from application.database import Message, User, Room, members
 
 from functools import wraps
 
+from application.viewHandlers import (get_room, get_current_userId, get_current_userObject, if_logged, login_required, userInRoom
+                                     ,userInRoom, get_rooms, get_room_byLink)
+
+from flask_socketio import SocketIO, send, emit
+
 bp = Blueprint('views', __name__)
+
+
 
 @bp.before_app_request
 def load_logged_in_user():
@@ -16,40 +26,6 @@ def load_logged_in_user():
     else:
         g.user = User.query.filter_by(id=user_id).first()
 
-def login_required(r):
-    @wraps(r)
-    def wrapper(*args, **kwargs):
-        try:
-             if session['username']:
-                return r(*args, **kwargs)
-
-        except:
-            return redirect(url_for('views.index'))
-    return wrapper
-
-def if_logged(r):
-    @wraps(r)
-    def wrapper(*args, **kwargs):
-        try:
-            if session['username']:
-                return redirect(url_for('views.main'))
-        except:
-            return r(*args, **kwargs) 
-    return wrapper
-
-def get_current_userId():
-    try:
-        return session['user_id']
-    except:
-        return None
-
-def get_current_userObject():
-    user_id = get_current_userId()
-
-    if user_id:
-        user = User.query.filter_by(id=user_id).first()
-        return user
-    return None
 
 @bp.route('/', methods=('POST', 'GET',))
 @if_logged
@@ -82,6 +58,7 @@ def main():
 @login_required
 def create_room():
     if request.method == 'POST':
+
         name = request.form['username']
         try:
             password = request.form['password']
@@ -124,105 +101,126 @@ def create_room():
         db.session.query(members).filter(
         members.c.user_id==current_userId, members.c.room_id==room_id).update((current_userId,room_id,True))
         db.session.commit()
+        
+        session['room_id'] = room_id
 
-        return redirect(f"http://127.0.0.1:5000/room/{current_userId}/{room_id}", code=302)
+        new_room.set_hash()
+        db.session.commit()
+        new_room.generate_link()
+        return redirect( url_for('views.rooms'), link=new_room.link)
         
         
     return render_template('createRoom.html')
 
-@bp.route('/join-room', methods=('GET','POST'))
+
+
+
+@bp.route('/join-room', methods=('GET', 'POST'))
 @login_required
 def join_room():
-
     if request.method == 'POST':
-
-        password = None
-        creator = None
-        room = None
         error = None
-        link = request.form['link']
-
+        room = None
         try:
             password = request.form['password']
         except:
-            pass
+            password = None
 
-        link = link.split('-')
-        creator_id = int(link[1])
-        room_id = int(link[2])
+        link = request.form['link']
 
-        current_userObj = get_current_userObject()
-        try:
-            creator = User.query.filter_by(id=creator_id).first()
-            room = Room.query.filter_by(id=room_id).first()
+        room = get_room_byLink(link)
+        if not room:
+            error = 'This link does not belong to any room'
+            return redirect(url_for('views.error', error_msg= error))
+        else:
+            check_user_in = userInRoom(room)
+            if not check_user_in:
 
-        except:
-            creator = None
-            room = None
+                current_userObj = get_current_userObject()
+                room.users.append(current_userObj)
+                db.session.commit()
+                
+                db.session.query(members).filter(
+                members.c.user_id==room.creator_id, members.c.room_id==room.id).update((room.creator_id, room.id, room.all_super))
+                db.session.commit()
+
+                session['room_id'] = room.id
+
+            return redirect(url_for('views.rooms', link=link))
+
         
-        if creator is None or room is None:
-            error = 'This link does not belong to any room.'
-
-
-        if error is None:
-            
-            room.users.append(current_userObj)
-            db.session.commit()
-            
-            db.session.query(members).filter(
-            members.c.user_id==creator_id, members.c.room_id==room_id).update((creator_id, room_id, room.all_super))
-            db.session.commit()
-
-            return redirect(f"http://127.0.0.1:5000/room/{creator_id}/{room_id}")
-
-        return redirect(url_for('views.error', error_msg=error))
-
     return render_template('joinRoom.html')
+
 
 @bp.route('/error/<error_msg>')
 def error(error_msg):
     return render_template('error.html', error_msg=error_msg)
 
-
-@bp.route('/room/<int:creator_id>/<int:room_id>')
+@bp.route('/room/<link>')
 @login_required
-def rooms(creator_id, room_id):
-    try:
-        creator = User.query.filter_by(id=creator_id).first()
-        room = Room.query.filter_by(id=room_id).first()
-    except:
-        creator = None
-        room = None
+def rooms(link):
     error = None
+    room = None
 
-    if creator is None or room is None:
-        error = "This link doesn't belong to any room."
-        return render_template('error.html', error_msg=error)
+    room = get_room_byLink(link)
+
+    if not room:
+        error = 'This link does not belong to any room'
+        return redirect(url_for('views.error', error_msg=error))
     
-    current_userObj = get_current_userObject()
-    current_userId = get_current_userId()
+    check_user_in = userInRoom(room)
+    if not check_user_in:
+        error = 'You can not join this room unless a super user gives you the join link.'
+        return redirect(url_for('views.error', error_msg= error))
 
-    room_mems = room.users
-
-    error = "You are not registered to this room. Get a link from a super user and click the join button."
-    for user in room_mems:
-        if user.id == current_userId:
-            error= None
-
+    messages = Message.query.filter_by(roomPid=room.id).all()
+    print(messages)
     data = {
-        'room':'lala'
+        'room':room,
+        'messages':messages
     }
-    print(room, creator,current_userObj,current_userId)
+    return render_template('room.html', data=data)
     
-    if error:
-        return render_template('error.html', error_msg=error)
-    
-    error= 'lala'
-    return render_template('room.html', error_msg=error)
 
-@bp.route('/leave-room/<int:creator_id>/<int:room_id>')
-def leave_room(creator_id, room_id):
+@bp.route('/leave-room', methods=('POST',))
+def leave_room():
+    if request.method == 'POST':
+        print('leave 1')
+        try:
+            user_id = request.get_json()['user_id']
+            room_id = int(request.get_json()['room_id'])
+        except:
+            user_id = None
+            room_id = None
+        print(user_id, room_id)
+        db.session.query(members).filter(members.c.user_id==user_id, members.c.room_id==room_id).delete()
+        db.session.commit()
+
+        session.pop('room_id')
+        user =get_current_userObject()
+        user = user.serialize()
+        socketio.emit('leave room', user)
+        
     
-    print(db.session.query(members).filter(
-        members.c.user_id==creator_id, members.c.room_id==room_id
-    ))
+    return redirect(url_for('views.main'))
+
+
+@bp.route('/get_user')
+def get_user():
+
+    user = get_current_userObject()
+    user = user.serialize()
+    data = {
+        'user':user
+    }
+    return data or {}
+
+
+@bp.route('/get-active-room')
+def get_active_room():
+    room = get_room()
+    if room:
+        room = room.serialize()
+
+    return room or {}
+
