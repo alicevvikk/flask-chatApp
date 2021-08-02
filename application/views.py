@@ -58,37 +58,39 @@ def main():
 @login_required
 def create_room():
     if request.method == 'POST':
-
+        password = None
+        
         name = request.form['username']
         try:
-            password = request.form['password']
+         if request.form['isProtected'] == "on":
+            is_protected = True 
+            password = request.form['password']      
         except:
-            pass
-
+            is_protected = False
+            password = None            
+        
         try:
             if request.form['all_super'] == "on":
                 all_super = True
         except:
-            all_super = False
+            all_super= False
         
-        try:
-            if request.form['isProtected'] == "on":
-                is_protected = True
-        except:
-            is_protected = False
-
 
         max_users = request.form['max_users']
 
         current_userId = get_current_userId()
-
+        
         if is_protected:
+            print('protected')
             new_room = Room(name=name, 
                         password=password, all_super=all_super, max_users=max_users, creator_id=current_userId, protected=True)
+            #new_room.set_hash()
         else:
+            print('not protected')
             new_room = Room(name=name, 
                         all_super=all_super, max_users=max_users, creator_id=current_userId)
 
+        
         db.session.add(new_room)
         db.session.commit()
         
@@ -103,11 +105,10 @@ def create_room():
         db.session.commit()
         
         session['room_id'] = room_id
-
-        new_room.set_hash()
-        db.session.commit()
         new_room.generate_link()
-        return redirect( url_for('views.rooms'), link=new_room.link)
+        
+
+        return redirect( url_for('views.rooms', link=new_room.link))
         
         
     return render_template('createRoom.html')
@@ -133,18 +134,46 @@ def join_room():
             error = 'This link does not belong to any room'
             return redirect(url_for('views.error', error_msg= error))
         else:
+
             check_user_in = userInRoom(room)
             if not check_user_in:
-
-                current_userObj = get_current_userObject()
-                room.users.append(current_userObj)
-                db.session.commit()
+                is_protected = room.protected
                 
-                db.session.query(members).filter(
-                members.c.user_id==room.creator_id, members.c.room_id==room.id).update((room.creator_id, room.id, room.all_super))
-                db.session.commit()
+                if is_protected:
+                    if password:
+                        print(room.check_pass(password), 'here')
+                        if room.check_pass(password):
+                            print('right pass')
+                            current_userObj = get_current_userObject()
+                            room.users.append(current_userObj)
+                            db.session.commit()
+                            
+                            db.session.query(members).filter(
+                            members.c.user_id==room.creator_id, members.c.room_id==room.id).update((room.creator_id, room.id, room.all_super))
+                            db.session.commit()
 
-                session['room_id'] = room.id
+                            session['room_id'] = room.id
+                        else:
+                            
+                            error = 'Wrong password.'
+                            return redirect(url_for('views.error', error_msg= error))
+
+
+                    else:
+                        
+                        error = 'This room is protected with a password.'
+                        return redirect(url_for('views.error', error_msg= error))
+                else:
+
+                    current_userObj = get_current_userObject()
+                    room.users.append(current_userObj)
+                    db.session.commit()
+                    
+                    db.session.query(members).filter(
+                    members.c.user_id==room.creator_id, members.c.room_id==room.id).update((room.creator_id, room.id, room.all_super))
+                    db.session.commit()
+
+                    session['room_id'] = room.id
 
             return redirect(url_for('views.rooms', link=link))
 

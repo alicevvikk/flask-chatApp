@@ -59,11 +59,14 @@ class Room(db.Model):
 
 
     def set_hash(self):
+        print(self.password)
         self.password = generate_password_hash(self.password)
         db.session.commit()
 
     def check_pass(self, password):
-        return check_password_hash(password, self.password)
+        print(password==self.password)
+        return password==self.password
+    
 
     def generate_link(self):
         self.link = f'ratvj{self.creator_id}lmfao{self.id}'
